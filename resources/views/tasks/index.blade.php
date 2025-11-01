@@ -10,8 +10,7 @@
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
 
-                    <div class="flex items-center justify-between mb-6">
-                        {{-- Create Task Button --}}
+                    <div class="flex items-center justify-end mb-6">
                         <a href="{{ route('tasks.create') }}" class="inline-flex items-center px-4 py-2 bg-gray-800 dark:bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-gray-800 uppercase tracking-widest hover:bg-gray-700 dark:hover:bg-white focus:bg-gray-700 dark:focus:bg-white active:bg-gray-900 dark:active:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
                             Create Task
                         </a>
@@ -25,67 +24,88 @@
 
                     @if($tasks->count())
                         <div class="overflow-x-auto">
-                            <table class="table-auto w-full border-collapse border border-gray-200 dark:border-gray-700">
+                            <table class="table-auto w-full">
                                 <thead class="bg-gray-50 dark:bg-gray-700">
                                     <tr>
-                                        <th class="border px-4 py-2 text-left">Title</th>
-                                        <th class="border px-4 py-2 text-left">Priority</th>
-                                        <th class="border px-4 py-2 text-left">Status</th>
-                                        <th class="border px-4 py-2 text-left">Due Date</th>
-                                        <th class="border px-4 py-2 text-center">Actions</th>
+                                        <th class="px-4 py-3 text-left w-2/5">Title</th>
+                                        <th class="px-4 py-3 text-left">Priority</th>
+                                        <th class="px-4 py-3 text-left">Status</th>
+                                        <th class="px-4 py-3 text-left">Due Date</th>
+                                        <th class="px-4 py-3 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($tasks as $task)
-                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-600">
-                                            <td class="border px-4 py-2">{{ data_get($task, 'title') }}</td>
-                                            <td class="border px-4 py-2">
-                                                <span @class([
-                                                    'px-2 py-1 text-xs font-semibold rounded-full',
-                                                    'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' => data_get($task, 'priority') == 'high',
-                                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' => data_get($task, 'priority') == 'medium',
-                                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' => data_get($task, 'priority') == 'low',
-                                                ])>
-                                                    {{ ucfirst(data_get($task, 'priority')) }}
-                                                </span>
-                                            </td>
-                                            <td class="border px-4 py-2">
-                                                {{-- Status Badge with new 'In Progress' state --}}
-                                                @php
-                                                    $status = data_get($task, 'is_completed') ? 'Completed' : data_get($task, 'status', 'Pending');
-                                                    $statusColor = match($status) {
-                                                        'Completed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-                                                        'In Progress' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-                                                        default => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-                                                    };
-                                                @endphp
-                                                <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $statusColor }}">
-                                                    {{ $status }}
-                                                </span>
-                                            </td>
-                                            <td class="border px-4 py-2">
-                                                {{ \Carbon\Carbon::parse(data_get($task, 'due_date'))->format('d M, Y, h:i A') }}
-                                            </td>
-                                            <td class="border px-4 py-2">
-                                                <div class="flex items-center justify-center gap-2">
-                                                    @auth
+                                        {{-- প্রতিটি প্যারেন্ট টাস্কের জন্য একটি নতুন Alpine.js কম্পোনেন্ট --}}
+                                        <tbody x-data="{ open: false }">
+                                            {{-- প্যারেন্ট টাস্কের সারি --}}
+                                            <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                                                <td class="px-4 py-3">
+                                                    <div class="flex items-center">
+                                                        {{-- যদি সাব-টাস্ক থাকে, তাহলে ড্রপডাউন অ্যারো দেখানো হবে --}}
+                                                        @if($task->subtasks->isNotEmpty())
+                                                            <button @click="open = !open" class="mr-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none">
+                                                                <svg :class="{'rotate-90': open}" class="w-4 h-4 text-gray-500 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                                            </button>
+                                                        @else
+                                                            <div class="w-7 mr-2"></div> {{-- অ্যালাইনমেন্ট ঠিক রাখার জন্য --}}
+                                                        @endif
+                                                        <span>{{ $task->title }}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <span @class(['px-2 py-1 text-xs font-semibold rounded-full',
+                                                        'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' => $task->priority == 'high',
+                                                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' => $task->priority == 'medium',
+                                                        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' => $task->priority == 'low',
+                                                    ])>{{ ucfirst($task->priority) }}</span>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    @php
+                                                        $status = $task->is_completed ? 'Completed' : $task->status;
+                                                        $statusColor = match($status) {
+                                                            'Completed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+                                                            'In Progress' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                                                            default => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+                                                        };
+                                                    @endphp
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $statusColor }}">{{ $status }}</span>
+                                                </td>
+                                                <td class="px-4 py-3">{{ \Carbon\Carbon::parse($task->due_date)->format('d M, Y, h:i A') }}</td>
+                                                <td class="px-4 py-3">
+                                                    <div class="flex items-center justify-center gap-2">
                                                         @if(!$task->is_completed)
-                                                            <form action="{{ route('tasks.toggleComplete', $task) }}" method="POST">
-                                                                @csrf
-                                                                @method('PATCH')
-                                                                <button type="submit" class="px-2 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Complete</button>
-                                                            </form>
+                                                            <form action="{{ route('tasks.toggleComplete', $task) }}" method="POST"><button type="submit" class="px-2 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Complete</button>@csrf @method('PATCH')</form>
                                                         @endif
                                                         <a href="{{ route('tasks.edit', $task) }}" class="px-3 py-1 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">Edit</a>
-                                                        <form action="{{ route('tasks.destroy', $task) }}" method="POST" onsubmit="return confirm('Are you sure?')">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Delete</button>
-                                                        </form>
-                                                    @endauth
-                                                </div>
-                                            </td>
-                                        </tr>
+                                                        <form action="{{ route('tasks.destroy', $task) }}" method="POST" onsubmit="return confirm('Are you sure?')"><button type="submit" class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Delete</button>@csrf @method('DELETE')</form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            {{-- সাব-টাস্কের সারিগুলো এখানে দেখানো হবে --}}
+                                            @if($task->subtasks->isNotEmpty())
+                                                <tr x-show="open" x-collapse class="bg-gray-50 dark:bg-gray-800/50">
+                                                    <td colspan="5" class="p-0">
+                                                        <div class="px-4 py-2">
+                                                            <table class="table-auto w-full">
+                                                                <tbody>
+                                                                    @foreach($task->subtasks as $subtask)
+                                                                        <tr class="border-t border-gray-200 dark:border-gray-700">
+                                                                            <td class="pl-12 pr-4 py-2 w-2/5">{{ $subtask->title }}</td>
+                                                                            <td class="px-4 py-2">{{-- Subtask Priority --}}</td>
+                                                                            <td class="px-4 py-2">...</td> {{-- Subtask Status --}}
+                                                                            <td class="px-4 py-2">...</td> {{-- Subtask Due Date --}}
+                                                                            <td class="px-4 py-2">...</td> {{-- Subtask Actions --}}
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                        </tbody>
                                     @endforeach
                                 </tbody>
                             </table>

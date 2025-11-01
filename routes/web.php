@@ -73,6 +73,10 @@ Route::middleware(['auth'])->group(function () {
     // Google Calendar Integration রুট
     Route::get('/google-redirect', [GoogleCalendarController::class, 'redirect'])->name('google.redirect');
     Route::get('/google-callback', [GoogleCalendarController::class, 'callback'])->name('google.callback');
+
+    Route::post('/tasks/generate-subtasks', [TaskController::class, 'generateSubtasks'])->name('tasks.generateSubtasks');
+
+    Route::get('/debug-ai', [App\Http\Controllers\TaskController::class, 'debugAi']);
 });
 
 // Laravel-এর ডিফল্ট auth রুটগুলো লোড করার জন্য
